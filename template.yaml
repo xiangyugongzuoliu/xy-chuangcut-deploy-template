@@ -1,0 +1,221 @@
+apiVersion: zeabur.com/v1
+kind: Template
+metadata:
+  name: chuangcut-video-workflow
+
+spec:
+  description: |
+    创剪视频工作流 - 基于 Google Gemini AI 的全自动视频剪辑工具
+
+    ✨ 核心功能:
+    • 📹 智能视频分析 - 使用 Gemini AI 深度理解视频内容
+    • ✂️ 自动生成分镜脚本 - AI 自动规划剪辑节奏和要点
+    • 🎙️ AI 配音合成 - Fish Audio 高质量语音生成
+    • ⚡ 云端音画同步处理 - NCA Toolkit 专业视频处理
+    • 🔄 断点续传 - 任务失败可从断点恢复
+    • 📊 任务状态管理 - 实时监控处理进度
+    • 🎨 多种解说风格 - 15+ 预设风格可选
+
+    🔐 授权说明:
+    部署前请联系供应商获取授权码 (LICENSE_KEY)
+
+    📚 技术栈:
+    Next.js 16 + React 19 + TypeScript + SQLite + Docker
+
+  icon: https://raw.githubusercontent.com/xiangyugongzuoliu/chuangcut-video-workflow-zeabur/main/assets/icon.png
+  coverImage: https://raw.githubusercontent.com/xiangyugongzuoliu/chuangcut-video-workflow-zeabur/main/assets/cover.png
+  tags:
+    - ai
+    - video
+    - automation
+    - gemini
+    - nextjs
+
+  variables:
+    # ========================================
+    # 授权配置（必需）
+    # ========================================
+    - key: LICENSE_KEY
+      type: STRING
+      name: 🔑 授权码
+      description: 翔宇工作流提供的授权码（必填）。格式：CCUT-XXXXXXXX-XXXX（仅 18-24 字符）
+      expose: true
+
+    # ========================================
+    # 加密配置（必需）
+    # ========================================
+    - key: ENCRYPTION_KEY
+      type: STRING
+      name: 🔐 加密密钥
+      description: |
+        用于加密存储 API 密钥，必须是 64 个十六进制字符（32 字节）
+        生成方法：node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+      expose: true
+
+    # ========================================
+    # 数据库配置
+    # ========================================
+    - key: DATABASE_URL
+      type: STRING
+      name: 💾 数据库路径
+      description: SQLite 数据库文件路径
+      default: file:/data/db.sqlite
+
+    # ========================================
+    # 目录配置
+    # ========================================
+    - key: TEMP_DIR
+      type: STRING
+      name: 📁 临时目录
+      description: 临时文件存储路径
+      default: /temp
+
+    - key: OUTPUT_DIR
+      type: STRING
+      name: 📁 输出目录
+      description: 最终成片存储路径
+      default: /output
+
+    - key: LOGS_DIR
+      type: STRING
+      name: 📁 日志目录
+      description: 日志文件存储路径
+      default: /logs
+
+    # ========================================
+    # NCA 服务配置
+    # ========================================
+    - key: NCA_REQUEST_TIMEOUT_MS
+      type: STRING
+      name: ⏱️ NCA 请求超时
+      description: NCA API 请求超时时间（毫秒），默认 5 分钟
+      default: "300000"
+
+    - key: NCA_WEBHOOK_URL
+      type: STRING
+      name: 🔗 NCA Webhook 地址
+      description: NCA Webhook 回调地址（必填但目前未使用）
+      default: https://www.google.com
+
+    # ========================================
+    # 系统配置
+    # ========================================
+    - key: NODE_ENV
+      type: STRING
+      name: 🌍 Node 环境
+      description: Node.js 运行环境
+      default: production
+
+    - key: LOG_LEVEL
+      type: STRING
+      name: 📊 日志级别
+      description: 日志级别（debug | info | warn | error）
+      default: info
+
+  services:
+    - name: chuangcut-video-workflow
+      icon: https://raw.githubusercontent.com/xiangyugongzuoliu/chuangcut-video-workflow-zeabur/main/assets/icon.png
+      template: PREBUILT
+      spec:
+        source:
+          image: xiangyugongzuoliu/chuangcut-video-workflow:latest
+
+        ports:
+          - id: web
+            port: 3000
+            type: HTTP
+
+        env:
+          # 授权配置
+          LICENSE_KEY:
+            default: ${LICENSE_KEY}
+            expose: true
+
+          # 加密配置
+          ENCRYPTION_KEY:
+            default: ${ENCRYPTION_KEY}
+            expose: true
+
+          # 数据库配置
+          DATABASE_URL:
+            default: ${DATABASE_URL}
+
+          # 目录配置
+          TEMP_DIR:
+            default: ${TEMP_DIR}
+
+          OUTPUT_DIR:
+            default: ${OUTPUT_DIR}
+
+          LOGS_DIR:
+            default: ${LOGS_DIR}
+
+          # NCA 服务配置
+          NCA_REQUEST_TIMEOUT_MS:
+            default: ${NCA_REQUEST_TIMEOUT_MS}
+
+          NCA_WEBHOOK_URL:
+            default: ${NCA_WEBHOOK_URL}
+
+          # 系统配置
+          NODE_ENV:
+            default: ${NODE_ENV}
+
+          LOG_LEVEL:
+            default: ${LOG_LEVEL}
+
+        volumes:
+          - id: data
+            dir: /data
+
+          - id: temp
+            dir: /temp
+
+          - id: output
+            dir: /output
+
+          - id: logs
+            dir: /logs
+
+        # 资源配置（推荐）
+        resources:
+          limits:
+            cpu: 4
+            memory: 8192  # 8GB
+          requests:
+            cpu: 2
+            memory: 4096  # 4GB
+
+        # 健康检查
+        healthCheck:
+          type: http
+          path: /api/health
+          port: 3000
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          timeoutSeconds: 5
+          failureThreshold: 3
+
+  readme: |
+    # 创剪视频工作流
+
+    基于 Google Gemini AI 的全自动视频剪辑工具。
+
+    ## 快速开始
+
+    1. 点击「Deploy on Zeabur」按钮
+    2. 按提示填写环境变量
+    3. 部署完成后，访问 `/settings` 页面配置 API 密钥
+    4. 访问 `/jobs` 创建视频任务
+
+    ## 核心功能
+
+    - 智能视频分析（Gemini AI）
+    - 自动生成分镜脚本
+    - AI 配音合成（Fish Audio）
+    - 云端音画同步（NCA Toolkit）
+    - 断点续传和任务管理
+
+    ## 作者
+
+    翔宇工作流
